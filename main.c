@@ -10,11 +10,11 @@ int main(int argc, char *argv[])
 {
     if (argc == 3 && strcmp(argv[1], "-t") == 0)
     {
-        if (strcmp(argv[2], "my_malloc") == 0)
+        if (strcmp(argv[2], "1") == 0)
             test_my_malloc();
-        else if (strcmp(argv[2], "my_free") == 0)
+        else if (strcmp(argv[2], "2") == 0)
             test_my_free();
-        else if (strcmp(argv[2], "my_realloc") == 0)
+        else if (strcmp(argv[2], "3") == 0)
             test_my_realloc();
     }
     else
