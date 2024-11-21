@@ -7,7 +7,7 @@
 
 int main()
 {
-    // test my_malloc and my_free
+    /////////////////////////////////////////// test my_malloc and my_free
 
     // allocate some memory
     printf("Allocating 100 bytes...\n");
@@ -51,6 +51,32 @@ int main()
     {
         printf("Memory allocation failed!\n");
     }
+
+    //////////////////////// Testing the simple realloc implementation
+    int *arr = (int *)sbrk(sizeof(int) * 5);
+    for (int i = 0; i < 5; ++i)
+    {
+        arr[i] = i;
+    }
+
+    // Reallocate to a larger size
+    arr = (int *)my_realloc(arr, sizeof(int) * 10);
+
+    // Fill the newly allocated memory
+    for (int i = 5; i < 10; ++i)
+    {
+        arr[i] = i;
+    }
+
+    // Print the array
+    for (int i = 0; i < 10; ++i)
+    {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+
+    // Free the memory (using sbrk, just reduce the size)
+    sbrk(-sizeof(int) * 10);
 
     return 0;
 }

@@ -12,6 +12,6 @@ typedef struct Block
 
 void *my_malloc(size_t size);
 void my_free(void *ptr);
-
+void *my_realloc(void *ptr, size_t new_size);
 
 #endif // MALLOC_H
