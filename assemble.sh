@@ -1,2 +1,2 @@
-gcc main.c malloc.c -Wall -o run
+gcc malloc.c test.c main.c -Wall -o run
 ./run

@@ -1,124 +1,129 @@
 #include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "malloc.h"
 
-// the free list to track available blocks
-static Block *free_list = NULL;
+static block_t *free_list = NULL; // head of the free list.
 
-// simple malloc implementation using sbrk
+void *get_me_blocks(ssize_t how_much)
+{
+    void *ptr = sbrk(0); // get current program break.
+    if (sbrk(how_much) == (void *)-1)
+    {
+        fprintf(stderr, "Failed to get memory\n");
+        return NULL;
+    }
+    return ptr;
+}
+
 void *my_malloc(size_t size)
 {
     if (size == 0)
-    {
         return NULL;
-    }
 
-    size_t total_size = size + sizeof(Block);
+    block_t *curr = free_list;
+    block_t *prev = NULL;
+    size_t total_size = size + sizeof(block_t); // account for metadata size.
 
-    // search the free list for a suitable block
-    Block *prev = NULL;
-    Block *curr = free_list;
-
-    while (curr != NULL)
+    // search for a free block that is large enough.
+    while (curr)
     {
-        if (curr->size >= total_size)
+        if (curr->free && curr->size >= total_size)
         {
-            if (prev != NULL)
+            if (curr->size > total_size + sizeof(block_t))
             {
-                prev->next = curr->next;
+                // split the block if it is large enough to create a new free
+                // block.
+                block_t *new_block = (block_t *)((char *)curr + total_size);
+                new_block->size = curr->size - total_size;
+                new_block->free = 1;
+                new_block->next = curr->next;
+                curr->size = total_size;
+                curr->next = new_block;
             }
-            else
-            {
-                free_list = curr->next;
-            }
-            return (void *)((char *)curr +
-                            sizeof(Block)); // return a pointer to the memory
-                                            // after the header
+            curr->free = 0; // mark the block as allocated.
+            return (char *)curr +
+                   sizeof(block_t); // return pointer to memory after metadata.
         }
         prev = curr;
         curr = curr->next;
     }
 
-    // no suitable block found, request more memory from the system using sbrk
-    Block *new_block = (Block *)sbrk(total_size);
-
-    if (new_block == (void *)-1)
-    {
+    // no suitable free block found. Request more memory.
+    block_t *new_block = get_me_blocks(total_size);
+    if (!new_block)
         return NULL;
-    }
 
     new_block->size = total_size;
+    new_block->free = 0;
     new_block->next = NULL;
 
-    return (void *)((char *)new_block + sizeof(Block));
-}
-
-// simple free implementation
-void my_free(void *ptr)
-{
-    if (ptr == NULL)
+    // add the new block to the free list if necessary.
+    if (free_list)
     {
-        return;
+        prev->next = new_block;
+    }
+    else
+    {
+        free_list = new_block;
     }
 
-    Block *block = (Block *)((char *)ptr - sizeof(Block));
+    return (char *)new_block + sizeof(block_t);
+}
 
+void my_free(void *ptr)
+{
+    if (!ptr)
+        return;
+
+    block_t *block =
+        (block_t *)((char *)ptr - sizeof(block_t)); // get the block metadata.
+
+    block->free = 1; // mark the block as free.
+
+    // add the block to the free list.
     block->next = free_list;
     free_list = block;
 }
 
-void *my_realloc(void *ptr, size_t new_size)
+void *my_realloc(void *ptr, size_t size)
 {
-    if (new_size == 0)
+    if (!ptr)
+        return my_malloc(size); // if the pointer is NULL, behave like malloc.
+    if (size == 0)
     {
-        if (ptr)
-        {
-            free(ptr);
-        }
+        my_free(ptr);
         return NULL;
     }
 
-    // if ptr is NULL, realloc behaves like malloc
-    if (!ptr)
-    {
-        return sbrk(new_size);
-    }
+    block_t *block = (block_t *)((char *)ptr - sizeof(block_t));
+    size_t total_size = size + sizeof(block_t);
 
-    // if new_size is the same as the old size, no need to do anything
-    // note: this is a very simplistic assumption, doesn't handle fragmentation
-    size_t old_size =
-        *(size_t *)ptr -
-        sizeof(size_t); // save old size (assuming it's stored at the start)
-
-    if (new_size == old_size)
+    // if the current block is large enough, just resize it.
+    if (block->size >= total_size)
     {
+        if (block->size > total_size + sizeof(block_t))
+        {
+            // split the block if it's large enough to create a new free block.
+            block_t *new_block = (block_t *)((char *)block + total_size);
+            new_block->size = block->size - total_size;
+            new_block->free = 1;
+            new_block->next = block->next;
+            block->size = total_size;
+            block->next = new_block;
+        }
         return ptr;
     }
 
-    // allocate a new block using sbrk
-    void *new_ptr = sbrk(new_size);
-    if (new_ptr == (void *)-1)
+    // if the block is too small, allocate a new one and copy the data.
+    void *new_ptr = my_malloc(size);
+    if (new_ptr)
     {
-        return NULL; // sbrk failure
+        memcpy(new_ptr, ptr,
+               block->size - sizeof(block_t)); // copy the old data.
+        my_free(ptr);
     }
-
-    // copy old data to the new location (if increasing size)
-    if (new_size < old_size)
-    {
-        memcpy(new_ptr, ptr, new_size);
-    }
-    else
-    {
-        memcpy(new_ptr, ptr, old_size);
-    }
-
-    // free the old memory
-    sbrk(-old_size);
-
     return new_ptr;
 }
