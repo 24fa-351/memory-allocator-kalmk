@@ -5,8 +5,8 @@
 
 typedef struct block
 {
-    size_t size;        // size of the block, including the header.
-    struct block *next; // pointer to the next block in the list.
+    size_t size;        
+    struct block *next; 
     int free;           // 1 if free, 0 if allocated.
 } block_t;
 
