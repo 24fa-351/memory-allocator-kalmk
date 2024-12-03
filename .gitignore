@@ -1,3 +1,5 @@
 a.out
 malloc
 run
+memtest_dev
+memtest_sys
