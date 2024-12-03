@@ -4,74 +4,47 @@
 
 #include "malloc.h"
 
-static BlockHeader *free_list = NULL;
-
-void *get_me_blocks(ssize_t how_much)
-{
-    void *ptr = sbrk(0);
-    if (sbrk(how_much) == (void *)-1)
-    {
-        return NULL;
-    }
-    return ptr;
-}
-
 size_t align(size_t size)
 {
     return (size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
+}
+
+void *get_me_blocks(ssize_t how_much)
+{
+    if (free_list_index >= MAX_BLOCKS)
+    {
+        return NULL;
+    }
+    void *ptr = &memory_pool[free_list_index];
+    free_list_index++;
+    return ptr;
 }
 
 void *malloc(size_t size)
 {
     size = align(size);
 
-    BlockHeader *current = free_list;
-    BlockHeader *prev = NULL;
-
-    while (current)
+    for (int i = 0; i < free_list_index; ++i)
     {
-        if (current->free && current->size >= size)
+        BlockHeader *block = (BlockHeader *)&memory_pool[free_list[i]];
+        if (block->free && block->size >= size)
         {
-            if (current->size > size + HEADER_SIZE)
-            {
-                BlockHeader *new_block =
-                    (BlockHeader *)((uintptr_t)current + HEADER_SIZE + size);
-                new_block->size = current->size - size - HEADER_SIZE;
-                new_block->free = 1;
-                new_block->next = current->next;
-                current->size = size;
-                current->next = new_block;
-            }
-
-            current->free = 0;
-            if (prev)
-            {
-                prev->next = current->next;
-            }
-            else
-            {
-                free_list = current->next;
-            }
-
-            return (void *)((uintptr_t)current + HEADER_SIZE);
+            block->free = 0;
+            return (void *)((uintptr_t)block + HEADER_SIZE);
         }
-
-        prev = current;
-        current = current->next;
     }
 
-    size_t total_size = size + HEADER_SIZE;
-    current = (BlockHeader *)get_me_blocks(total_size);
-    if (current == NULL)
+    BlockHeader *new_block = (BlockHeader *)get_me_blocks(size + HEADER_SIZE);
+    if (!new_block)
     {
         return NULL;
     }
 
-    current->size = size;
-    current->free = 0;
-    current->next = NULL;
-
-    return (void *)((uintptr_t)current + HEADER_SIZE);
+    new_block->size = size;
+    new_block->free = 0;
+    free_list[free_list_index - 1] =
+        (uintptr_t)new_block - (uintptr_t)memory_pool;
+    return (void *)((uintptr_t)new_block + HEADER_SIZE);
 }
 
 void free(void *ptr)
@@ -82,25 +55,23 @@ void free(void *ptr)
     BlockHeader *block = (BlockHeader *)((uintptr_t)ptr - HEADER_SIZE);
     block->free = 1;
 
-    block->next = free_list;
-    free_list = block;
+    free_list[free_list_index] = (uintptr_t)block - (uintptr_t)memory_pool;
+    free_list_index++;
 
-    BlockHeader *current = free_list;
-    while (current && current->next)
+    for (int i = 0; i < free_list_index - 1; ++i)
     {
-        if ((uintptr_t)current + current->size + HEADER_SIZE ==
-            (uintptr_t)current->next)
+        BlockHeader *current = (BlockHeader *)&memory_pool[free_list[i]];
+        BlockHeader *next = (BlockHeader *)&memory_pool[free_list[i + 1]];
+
+        if ((uintptr_t)current + current->size + HEADER_SIZE == (uintptr_t)next)
         {
-            current->size += current->next->size + HEADER_SIZE;
-            current->next = current->next->next;
-        }
-        else
-        {
-            current = current->next;
+            current->size += next->size + HEADER_SIZE;
+            free_list[i + 1] = free_list[i];
         }
     }
 }
 
+// Realloc implementation
 void *realloc(void *ptr, size_t size)
 {
     if (ptr == NULL)

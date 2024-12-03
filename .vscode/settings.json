@@ -4,6 +4,7 @@
     "stddef.h": "c",
     "unistd.h": "c",
     "string.h": "c",
-    "stdio.h": "c"
+    "stdio.h": "c",
+    "malloc.h": "c"
   }
 }
