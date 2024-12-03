@@ -3,14 +3,17 @@
 
 #include <stddef.h>
 
-typedef struct block
-{
-    size_t size;        
-    struct block *next; 
-    int free;           // 1 if free, 0 if allocated.
-} block_t;
+#define ALIGNMENT 8
+#define HEADER_SIZE sizeof(BlockHeader)
 
-void *get_me_blocks(ssize_t how_much);
+typedef struct BlockHeader
+{
+    size_t size;
+    struct BlockHeader *next;
+    int free;
+} BlockHeader;
+
+size_t align(size_t size);
 void *malloc(size_t size);
 void free(void *ptr);
 void *realloc(void *ptr, size_t size);
