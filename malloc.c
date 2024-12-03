@@ -1,10 +1,20 @@
-#include <stddef.h> 
+#include <stddef.h>
 #include <stdint.h>
-#include <unistd.h> 
+#include <unistd.h>
 
 #include "malloc.h"
 
 static BlockHeader *free_list = NULL;
+
+void *get_me_blocks(ssize_t how_much)
+{
+    void *ptr = sbrk(0);
+    if (sbrk(how_much) == (void *)-1)
+    {
+        return NULL;
+    }
+    return ptr;
+}
 
 size_t align(size_t size)
 {
@@ -51,8 +61,8 @@ void *malloc(size_t size)
     }
 
     size_t total_size = size + HEADER_SIZE;
-    current = (BlockHeader *)sbrk(total_size);
-    if (current == (void *)-1)
+    current = (BlockHeader *)get_me_blocks(total_size);
+    if (current == NULL)
     {
         return NULL;
     }
