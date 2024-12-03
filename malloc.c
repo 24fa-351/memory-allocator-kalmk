@@ -18,7 +18,7 @@ void *get_me_blocks(ssize_t how_much)
     return ptr;
 }
 
-void *my_malloc(size_t size)
+void *malloc(size_t size)
 {
     if (size == 0)
         return NULL;
@@ -67,7 +67,7 @@ void *my_malloc(size_t size)
     return (char *)new_block + sizeof(block_t);
 }
 
-void my_free(void *ptr)
+void free(void *ptr)
 {
     if (!ptr)
         return;
@@ -80,13 +80,13 @@ void my_free(void *ptr)
     free_list = block;
 }
 
-void *my_realloc(void *ptr, size_t size)
+void *realloc(void *ptr, size_t size)
 {
     if (!ptr)
-        return my_malloc(size);
+        return malloc(size);
     if (size == 0)
     {
-        my_free(ptr);
+        free(ptr);
         return NULL;
     }
 
@@ -107,11 +107,11 @@ void *my_realloc(void *ptr, size_t size)
         return ptr;
     }
 
-    void *new_ptr = my_malloc(size);
+    void *new_ptr = malloc(size);
     if (new_ptr)
     {
         memcpy(new_ptr, ptr, block->size - sizeof(block_t));
-        my_free(ptr);
+        free(ptr);
     }
     return new_ptr;
 }

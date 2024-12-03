@@ -11,8 +11,8 @@ typedef struct block
 } block_t;
 
 void *get_me_blocks(ssize_t how_much);
-void *my_malloc(size_t size);
-void my_free(void *ptr);
-void *my_realloc(void *ptr, size_t size);
+void *malloc(size_t size);
+void free(void *ptr);
+void *realloc(void *ptr, size_t size);
 
 #endif // MALLOC_H
