@@ -71,7 +71,6 @@ void free(void *ptr)
     }
 }
 
-// Realloc implementation
 void *realloc(void *ptr, size_t size)
 {
     if (ptr == NULL)
