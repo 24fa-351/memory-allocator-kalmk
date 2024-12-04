@@ -1,8 +1,8 @@
+#include "malloc.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <unistd.h>
-
-#include "malloc.h"
 
 size_t align(size_t size)
 {
@@ -12,9 +12,7 @@ size_t align(size_t size)
 void *get_me_blocks(ssize_t how_much)
 {
     if (free_list_index >= MAX_BLOCKS)
-    {
         return NULL;
-    }
     void *ptr = &memory_pool[free_list_index];
     free_list_index++;
     return ptr;
@@ -36,9 +34,7 @@ void *malloc(size_t size)
 
     BlockHeader *new_block = (BlockHeader *)get_me_blocks(size + HEADER_SIZE);
     if (!new_block)
-    {
         return NULL;
-    }
 
     new_block->size = size;
     new_block->free = 0;
@@ -74,9 +70,7 @@ void free(void *ptr)
 void *realloc(void *ptr, size_t size)
 {
     if (ptr == NULL)
-    {
         return malloc(size);
-    }
 
     if (size == 0)
     {
@@ -88,17 +82,13 @@ void *realloc(void *ptr, size_t size)
     size = align(size);
 
     if (block->size >= size)
-    {
         return ptr;
-    }
 
     void *new_ptr = malloc(size);
     if (new_ptr)
     {
         for (size_t ix = 0; ix < block->size; ix++)
-        {
             ((char *)new_ptr)[ix] = ((char *)ptr)[ix];
-        }
 
         free(ptr);
     }
