@@ -58,15 +58,15 @@ void free(void *ptr)
     free_list[free_list_index] = (uintptr_t)block - (uintptr_t)memory_pool;
     free_list_index++;
 
-    for (int i = 0; i < free_list_index - 1; ++i)
+    for (int ix = 0; ix < free_list_index - 1; ++ix)
     {
-        BlockHeader *current = (BlockHeader *)&memory_pool[free_list[i]];
-        BlockHeader *next = (BlockHeader *)&memory_pool[free_list[i + 1]];
+        BlockHeader *current = (BlockHeader *)&memory_pool[free_list[ix]];
+        BlockHeader *next = (BlockHeader *)&memory_pool[free_list[ix + 1]];
 
         if ((uintptr_t)current + current->size + HEADER_SIZE == (uintptr_t)next)
         {
             current->size += next->size + HEADER_SIZE;
-            free_list[i + 1] = free_list[i];
+            free_list[ix + 1] = free_list[ix];
         }
     }
 }
@@ -95,9 +95,9 @@ void *realloc(void *ptr, size_t size)
     void *new_ptr = malloc(size);
     if (new_ptr)
     {
-        for (size_t i = 0; i < block->size; i++)
+        for (size_t ix = 0; ix < block->size; ix++)
         {
-            ((char *)new_ptr)[i] = ((char *)ptr)[i];
+            ((char *)new_ptr)[ix] = ((char *)ptr)[ix];
         }
 
         free(ptr);
